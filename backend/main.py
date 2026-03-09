@@ -1,8 +1,12 @@
 import os
+import sys
 import asyncio
 from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
+
+# Ensure backend/ is on sys.path for Vercel
+sys.path.insert(0, os.path.dirname(__file__))
 
 from data_fetcher import fetch_market_data, fetch_history
 from polymarket import fetch_ceasefire_predictions
