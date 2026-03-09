@@ -1,5 +1,7 @@
 __pycache__/
 *.pyc
 data/panel.db
-.claude/
 data/*.json
+.claude/
+.vercel/
+financial-services-plugins-guide.*
