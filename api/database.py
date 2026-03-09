@@ -1,7 +1,7 @@
 import sqlite3
 import json
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 # Vercel serverless: /tmp is the only writable directory
 if os.environ.get("VERCEL"):
@@ -38,7 +38,7 @@ def save_snapshot(data: dict):
         conn = get_conn()
         conn.execute(
             "INSERT INTO snapshots (timestamp, data) VALUES (?, ?)",
-            (datetime.utcnow().isoformat(), json.dumps(data, ensure_ascii=False)),
+            (datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S"), json.dumps(data, ensure_ascii=False)),
         )
         conn.commit()
         conn.close()

@@ -480,7 +480,7 @@ async function refreshData() {
     const analyzeData = await analyzeResp.json();
     renderAnalysis(analyzeData.analysis);
 
-    document.getElementById('updateTime').textContent='最后更新: '+new Date().toLocaleString('zh-CN');
+    document.getElementById('updateTime').textContent='最后更新: '+new Date().toLocaleString('zh-CN',{timeZone:'Asia/Shanghai'});
 
     // Step 5: Load history charts in parallel
     const ks = Object.keys(allIndicators).filter(k=>!STOCK_KEYS.includes(k));
@@ -497,7 +497,7 @@ async function refreshData() {
       if (d.indicators) renderIndicators(d.indicators);
       renderPolymarket(d.polymarket);
       renderAnalysis(d.analysis);
-      document.getElementById('updateTime').textContent='缓存: '+(s.timestamp||'--');
+      document.getElementById('updateTime').textContent='缓存: '+(s.timestamp||'--')+' (北京时间)';
     }
   } catch(e) {}
 })();
