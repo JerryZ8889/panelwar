@@ -61,12 +61,6 @@
   .card-chart { margin-top: 8px; height: 60px; }
   .card-full { grid-column: 1 / -1; }
 
-  /* Stocks row */
-  .stock-row { display: flex; gap: 20px; flex-wrap: wrap; }
-  .stock-item { flex: 1; min-width: 120px; }
-  .stock-name { font-size: 12px; color: #888; }
-  .stock-val { font-size: 20px; font-weight: 700; color: #fff; }
-
   /* Polymarket bars */
   .pm-row { display: flex; align-items: center; margin-bottom: 6px; font-size: 13px; }
   .pm-label { width: 130px; flex-shrink: 0; color: #aaa; }
@@ -182,15 +176,7 @@
 <div class="section"><div class="section-title">核心恐慌指标</div><div class="section-grid" id="group-core"></div></div>
 <div class="section"><div class="section-title">能源价格</div><div class="section-grid" id="group-energy"></div></div>
 <div class="section"><div class="section-title">避险资产</div><div class="section-grid" id="group-safe_haven"></div></div>
-<div class="section">
-  <div class="section-title">美股指数</div>
-  <div class="section-grid">
-    <div class="card card-full" id="card-us_stocks">
-      <div class="stock-row" id="stock-row"></div>
-      <div class="card-desc">美股三大指数：战争引发系统性风险、能源成本飙升和滞胀预期时集体承压</div>
-    </div>
-  </div>
-</div>
+<div class="section"><div class="section-title">美股指数</div><div class="section-grid" id="group-us_stocks"></div></div>
 <div class="section"><div class="section-title">工业金属</div><div class="section-grid" id="group-metals"></div></div>
 <div class="section"><div class="section-title">粮食价格</div><div class="section-grid" id="group-grain"></div></div>
 <div class="section"><div class="section-title">军工 / 航运板块</div><div class="section-grid" id="group-sector"></div></div>
@@ -233,11 +219,10 @@
 
 <script>
 const charts = {};
-const CARD_GROUPS = ['core','energy','safe_haven','metals','grain','sector','mideast','em_risk','inflation'];
-const STOCK_KEYS = ['sp500','dji','nasdaq'];
+const CARD_GROUPS = ['core','energy','safe_haven','us_stocks','metals','grain','sector','mideast','em_risk','inflation'];
 const COLORS = {
   vix:'#ef4444',brent:'#f97316',wti:'#f59e0b',natgas:'#fb923c',
-  gold:'#eab308',usd_index:'#3b82f6',us10y:'#8b5cf6',
+  gold:'#eab308',usd_index:'#3b82f6',us10y:'#8b5cf6',sp500:'#6366f1',dji:'#818cf8',nasdaq:'#a78bfa',
   copper:'#f97316',aluminum:'#a855f7',wheat:'#84cc16',corn:'#22c55e',
   ita:'#6366f1',lmt:'#818cf8',rtx:'#a78bfa',noc:'#c084fc',
   zim:'#06b6d4',bdry:'#22d3ee',irr:'#f43f5e',ksa:'#e11d48',eis:'#2563eb',uae:'#0ea5e9',
@@ -283,15 +268,6 @@ function renderIndicators(indicators) {
     const c = document.getElementById('group-'+gid);
     if (!c || !grouped[gid]) continue;
     c.innerHTML = grouped[gid].map(([k,d]) => buildCard(k,d)).join('');
-  }
-  const sr = document.getElementById('stock-row');
-  if (sr && grouped['us_stocks']) {
-    sr.innerHTML = grouped['us_stocks'].map(([k,d]) => `
-      <div class="stock-item">
-        <div class="stock-name">${d.name}</div>
-        <div class="stock-val">${fmt(d.value,d.unit)}</div>
-        <div>${chgHtml(d,k)}</div>
-      </div>`).join('');
   }
 }
 
@@ -492,7 +468,7 @@ async function refreshData() {
     }
 
     // Step 5: Load history charts in parallel
-    const ks = Object.keys(allIndicators).filter(k=>!STOCK_KEYS.includes(k));
+    const ks = Object.keys(allIndicators);
     await Promise.all(ks.map(k=>loadHistory(k)));
   } catch(e) { alert('数据获取失败: '+e.message); }
   finally { btn.disabled=false; btn.classList.remove('loading'); btn.textContent='刷新数据'; ov.classList.add('hidden'); }
