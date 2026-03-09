@@ -223,8 +223,70 @@ GROUPS = {
 }
 
 
+# 5 batches, ~5-6 symbols each
+BATCHES = {
+    1: ["vix", "brent", "wti", "natgas", "gold", "usd_index"],
+    2: ["us10y", "sp500", "dji", "nasdaq", "copper", "aluminum"],
+    3: ["wheat", "corn", "ita", "lmt", "rtx", "noc"],
+    4: ["zim", "bdry", "irr", "ksa", "eis", "uae"],
+    5: ["india_vix", "tip", "rinf"],
+}
+
+
+def fetch_batch(batch_id: int) -> dict:
+    """Fetch a specific batch of symbols."""
+    keys = BATCHES.get(batch_id, [])
+    return _fetch_keys(keys)
+
+
+def _fetch_keys(keys: list[str]) -> dict:
+    """Fetch market data for a list of symbol keys."""
+    results = {}
+    subset = {k: SYMBOLS[k] for k in keys if k in SYMBOLS}
+    codes = [info["code"] for info in subset.values()]
+
+    tickers = yf.Tickers(" ".join(codes))
+
+    for key, info in subset.items():
+        try:
+            ticker = tickers.tickers.get(info["code"])
+            if ticker is None:
+                ticker = yf.Ticker(info["code"])
+
+            hist = ticker.history(period="5d")
+            if hist.empty:
+                results[key] = {
+                    "name": info["name"], "unit": info["unit"],
+                    "desc": info["desc"], "group": info["group"],
+                    "value": None, "prev_close": None,
+                    "change": None, "change_pct": None,
+                }
+                continue
+
+            current = float(hist["Close"].iloc[-1])
+            prev = float(hist["Close"].iloc[-2]) if len(hist) >= 2 else current
+            change = current - prev
+            change_pct = (change / prev * 100) if prev != 0 else 0
+
+            results[key] = {
+                "name": info["name"], "unit": info["unit"],
+                "desc": info["desc"], "group": info["group"],
+                "value": round(current, 2), "prev_close": round(prev, 2),
+                "change": round(change, 2), "change_pct": round(change_pct, 2),
+            }
+        except Exception as e:
+            results[key] = {
+                "name": info["name"], "unit": info["unit"],
+                "desc": info["desc"], "group": info["group"],
+                "value": None, "prev_close": None,
+                "change": None, "change_pct": None, "error": str(e),
+            }
+
+    return results
+
+
 def fetch_market_data() -> dict:
-    """Fetch latest market data for all tracked symbols."""
+    """Fetch latest market data for all tracked symbols (local dev)."""
     results = {}
     codes = [info["code"] for info in SYMBOLS.values()]
 

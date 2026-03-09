@@ -454,14 +454,36 @@ async function refreshData() {
   btn.disabled=true; btn.classList.add('loading'); btn.textContent='获取中...';
   ov.classList.remove('hidden');
   try {
-    const r = await fetch('/api/refresh');
-    if (!r.ok) throw new Error('Failed');
-    const data = await r.json();
-    renderIndicators(data.indicators||{});
-    renderPolymarket(data.polymarket);
-    renderAnalysis(data.analysis);
+    // Step 1: Fetch 5 batches + polymarket in parallel
+    const [b1,b2,b3,b4,b5,pm] = await Promise.all([
+      fetch('/api/batch/1').then(r=>r.json()),
+      fetch('/api/batch/2').then(r=>r.json()),
+      fetch('/api/batch/3').then(r=>r.json()),
+      fetch('/api/batch/4').then(r=>r.json()),
+      fetch('/api/batch/5').then(r=>r.json()),
+      fetch('/api/polymarket').then(r=>r.json()),
+    ]);
+
+    // Step 2: Merge all indicators
+    const allIndicators = {...b1,...b2,...b3,...b4,...b5};
+
+    // Step 3: Render indicators + polymarket immediately
+    renderIndicators(allIndicators);
+    renderPolymarket(pm);
+
+    // Step 4: Send merged data to analyze endpoint
+    const analyzeResp = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({indicators: allIndicators, polymarket: pm}),
+    });
+    const analyzeData = await analyzeResp.json();
+    renderAnalysis(analyzeData.analysis);
+
     document.getElementById('updateTime').textContent='最后更新: '+new Date().toLocaleString('zh-CN');
-    const ks = Object.keys(data.indicators||{}).filter(k=>!STOCK_KEYS.includes(k));
+
+    // Step 5: Load history charts in parallel
+    const ks = Object.keys(allIndicators).filter(k=>!STOCK_KEYS.includes(k));
     await Promise.all(ks.map(k=>loadHistory(k)));
   } catch(e) { alert('数据获取失败: '+e.message); }
   finally { btn.disabled=false; btn.classList.remove('loading'); btn.textContent='刷新数据'; ov.classList.add('hidden'); }

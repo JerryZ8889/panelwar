@@ -2,13 +2,12 @@
 import os
 import sys
 import asyncio
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 
-# Import modules from api/ directory
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "api"))
 
-from data_fetcher import fetch_market_data, fetch_history
+from data_fetcher import fetch_market_data, fetch_batch, fetch_history
 from polymarket import fetch_ceasefire_predictions
 from analyzer import analyze
 from database import save_snapshot, get_latest_snapshot, get_history as get_db_history
@@ -23,15 +22,45 @@ async def index():
     return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 
 
+@app.get("/api/batch/{batch_id}")
+async def batch(batch_id: int):
+    if batch_id < 1 or batch_id > 5:
+        return JSONResponse(content={"error": "batch_id must be 1-5"}, status_code=400)
+    loop = asyncio.get_event_loop()
+    data = await loop.run_in_executor(None, fetch_batch, batch_id)
+    return JSONResponse(content=data)
+
+
+@app.get("/api/polymarket")
+async def polymarket():
+    data = await fetch_ceasefire_predictions()
+    return JSONResponse(content=data)
+
+
+@app.post("/api/analyze")
+async def analyze_post(request: Request):
+    body = await request.json()
+    indicators = body.get("indicators", {})
+    polymarket_data = body.get("polymarket", [])
+    analysis = analyze(indicators, polymarket_data)
+    snapshot = {
+        "indicators": indicators,
+        "polymarket": polymarket_data,
+        "analysis": analysis,
+    }
+    save_snapshot(snapshot)
+    return JSONResponse(content={"analysis": analysis})
+
+
 @app.get("/api/refresh")
 async def refresh():
     loop = asyncio.get_event_loop()
     market_data = await loop.run_in_executor(None, fetch_market_data)
-    polymarket = await fetch_ceasefire_predictions()
-    analysis = analyze(market_data, polymarket)
+    polymarket_data = await fetch_ceasefire_predictions()
+    analysis = analyze(market_data, polymarket_data)
     snapshot = {
         "indicators": market_data,
-        "polymarket": polymarket,
+        "polymarket": polymarket_data,
         "analysis": analysis,
     }
     save_snapshot(snapshot)
