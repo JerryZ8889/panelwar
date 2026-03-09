@@ -1,12 +1,9 @@
 {
-  "buildCommand": "",
-  "outputDirectory": "",
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.py" }
+  "builds": [
+    { "src": "api/index.py", "use": "@vercel/python" }
   ],
-  "functions": {
-    "api/**/*.py": {
-      "maxDuration": 60
-    }
-  }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "api/index.py" },
+    { "src": "/(.*)", "dest": "public/$1" }
+  ]
 }
